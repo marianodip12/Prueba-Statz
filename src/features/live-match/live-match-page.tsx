@@ -31,6 +31,7 @@ import { EventEditDialog } from './event-edit-dialog';
 import { eventChangesPossession, otherTeam } from '@/domain/recommendations';
 import { LiveMatchFree } from './live-match-free';
 import { SuperpowerBar } from './superpower-bar';
+import { LineupSlidebar } from './lineup-slidebar';
 import { softDeleteEventRemote, discardLiveMatchRemote } from '@/lib/sync';
 import { hasCompleteMode, usePlan } from '@/lib/use-plan';
 import { isClubReadOnly } from '@/lib/club-context';
@@ -174,6 +175,7 @@ const LiveMatchPagePro = () => {
   const [pendingShot, setPendingShot] = useState<PendingShot | null>(null);
   const [pendingTagged, setPendingTagged] = useState<PendingTagged | null>(null);
   const [editingEvent, setEditingEvent] = useState<HandballEvent | null>(null);
+  const [showLineup, setShowLineup] = useState(false);
 
   if (status !== 'live' || !match.home) {
     return (
@@ -495,6 +497,29 @@ const LiveMatchPagePro = () => {
         awayColor={match.awayColor}
         focus={attacker}
       />
+
+      {/* 🧩 Formación en cancha — colapsable, opt-in para no estorbar la carga rápida */}
+      <section className="rounded-lg border border-border bg-surface overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowLineup((v) => !v)}
+          className="w-full flex items-center justify-between px-3 py-2 hover:bg-surface-2 transition-colors"
+        >
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">
+            🧩 Formación en cancha
+          </span>
+          <span className="text-[10px] text-muted-fg">{showLineup ? '▲ ocultar' : '▼ mostrar'}</span>
+        </button>
+        {showLineup && (
+          <div className="p-2 border-t border-border">
+            <LineupSlidebar />
+            <p className="text-[9px] text-muted-fg mt-2 px-1 leading-relaxed">
+              La formación que tengas acá se guarda con cada evento de tu equipo. Después podés
+              ver cuántos goles hiciste y recibiste con cada combinación en el análisis del partido.
+            </p>
+          </div>
+        )}
+      </section>
 
       {/* Mode + auto-switch */}
       <div className="flex gap-2">
