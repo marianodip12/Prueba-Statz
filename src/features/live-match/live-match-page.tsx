@@ -175,7 +175,7 @@ const LiveMatchPagePro = () => {
   const [pendingShot, setPendingShot] = useState<PendingShot | null>(null);
   const [pendingTagged, setPendingTagged] = useState<PendingTagged | null>(null);
   const [editingEvent, setEditingEvent] = useState<HandballEvent | null>(null);
-  const [showLineupMobile, setShowLineupMobile] = useState(false);
+  
 
   if (status !== 'live' || !match.home) {
     return (
@@ -454,13 +454,17 @@ const LiveMatchPagePro = () => {
 
   return (
     <div className="pb-4">
-      {/* 🧩 Slidebar lateral fijo al viewport (solo desktop lg+) */}
-      <aside className="hidden lg:flex lg:flex-col fixed top-4 bottom-4 left-[272px] w-24 z-10">
+      {/* 🧩 Slidebar lateral fijo — visible en todos los breakpoints */}
+      <aside
+        className="flex flex-col fixed left-2 w-14 top-16 bottom-16 z-40
+                   md:left-4 md:w-16 md:bottom-4
+                   lg:left-[272px] lg:w-24 lg:top-4"
+      >
         <LineupSlidebar />
       </aside>
 
-      {/* Contenido principal — padding-left en desktop para no tapar el slidebar fijo */}
-      <div className="space-y-3 min-w-0 lg:pl-28">
+      {/* Contenido principal — padding-left en cada breakpoint para no tapar el slidebar fijo */}
+      <div className="space-y-3 min-w-0 pl-16 md:pl-20 lg:pl-28">
       <SuperpowerBar />
       <Scoreboard
         home={match.home}
@@ -747,41 +751,6 @@ const LiveMatchPagePro = () => {
         />
       )}
       </div>
-      {/* 🧩 Slidebar mobile: FAB + drawer (oculto en desktop) */}
-      <button
-        type="button"
-        onClick={() => setShowLineupMobile(true)}
-        className="lg:hidden fixed bottom-20 md:bottom-4 left-4 z-40 w-12 h-12 rounded-full bg-primary text-primary-fg shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
-        aria-label="Abrir formación"
-      >
-        <span className="text-lg" aria-hidden>🧩</span>
-      </button>
-      {showLineupMobile && (
-        <div
-          className="lg:hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
-          onClick={() => setShowLineupMobile(false)}
-        >
-          <div
-            className="absolute left-0 top-0 bottom-0 w-28 bg-surface border-r border-border p-2 shadow-xl overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-1.5 px-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-fg">Formación</span>
-              <button
-                type="button"
-                onClick={() => setShowLineupMobile(false)}
-                className="text-muted-fg hover:text-fg text-sm leading-none"
-                aria-label="Cerrar"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="flex-1 min-h-0">
-              <LineupSlidebar />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
