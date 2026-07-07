@@ -186,19 +186,30 @@ export const useMatchStore = create<MatchStoreState>()(
       swapFieldPlayer: (outNum, inNum) =>
         set((s) => {
           const field = [...s.liveLineup.field];
+          const gk = s.liveLineup.goalkeeper;
+          // Máx de handball: 6 con arquero, 7 con arco vacío
+          const maxField = gk == null ? 7 : 6;
           // Si ya está en campo, no duplicar
           if (field.includes(inNum)) return {};
           if (outNum != null) {
             const idx = field.indexOf(outNum);
             if (idx >= 0) field[idx] = inNum;
-            else field.push(inNum);
+            else if (field.length < maxField) field.push(inNum);
+            else return {}; // sin lugar
           } else {
+            if (field.length >= maxField) return {}; // sin lugar
             field.push(inNum);
           }
           return { liveLineup: { ...s.liveLineup, field } };
         }),
       setGoalkeeper: (num) =>
-        set((s) => ({ liveLineup: { ...s.liveLineup, goalkeeper: num } })),
+        set((s) => {
+          // Si el jugador que se pone de arquero estaba en campo, sacarlo del campo
+          const cleanedField = num != null
+            ? s.liveLineup.field.filter((n) => n !== num)
+            : s.liveLineup.field;
+          return { liveLineup: { field: cleanedField, goalkeeper: num } };
+        }),
 
       startLive: (info) =>
         set({

@@ -175,7 +175,7 @@ const LiveMatchPagePro = () => {
   const [pendingShot, setPendingShot] = useState<PendingShot | null>(null);
   const [pendingTagged, setPendingTagged] = useState<PendingTagged | null>(null);
   const [editingEvent, setEditingEvent] = useState<HandballEvent | null>(null);
-  const [showLineup, setShowLineup] = useState(false);
+  const [showLineupMobile, setShowLineupMobile] = useState(false);
 
   if (status !== 'live' || !match.home) {
     return (
@@ -453,7 +453,14 @@ const LiveMatchPagePro = () => {
   }
 
   return (
-    <div className="space-y-3 pb-4">
+    <div className="lg:grid lg:grid-cols-[104px_minmax(0,1fr)] lg:gap-3 pb-4">
+      {/* 🧩 Slidebar lateral (solo desktop) */}
+      <aside className="hidden lg:flex lg:flex-col lg:sticky lg:top-2 lg:self-start lg:max-h-[calc(100vh-1rem)] lg:overflow-hidden">
+        <LineupSlidebar />
+      </aside>
+
+      {/* Contenido principal */}
+      <div className="space-y-3 min-w-0">
       <SuperpowerBar />
       <Scoreboard
         home={match.home}
@@ -497,29 +504,6 @@ const LiveMatchPagePro = () => {
         awayColor={match.awayColor}
         focus={attacker}
       />
-
-      {/* 🧩 Formación en cancha — colapsable, opt-in para no estorbar la carga rápida */}
-      <section className="rounded-lg border border-border bg-surface overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowLineup((v) => !v)}
-          className="w-full flex items-center justify-between px-3 py-2 hover:bg-surface-2 transition-colors"
-        >
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">
-            🧩 Formación en cancha
-          </span>
-          <span className="text-[10px] text-muted-fg">{showLineup ? '▲ ocultar' : '▼ mostrar'}</span>
-        </button>
-        {showLineup && (
-          <div className="p-2 border-t border-border">
-            <LineupSlidebar />
-            <p className="text-[9px] text-muted-fg mt-2 px-1 leading-relaxed">
-              La formación que tengas acá se guarda con cada evento de tu equipo. Después podés
-              ver cuántos goles hiciste y recibiste con cada combinación en el análisis del partido.
-            </p>
-          </div>
-        )}
-      </section>
 
       {/* Mode + auto-switch */}
       <div className="flex gap-2">
@@ -761,6 +745,42 @@ const LiveMatchPagePro = () => {
           kind={pickerContext.kind}
           priorityZone={'priorityZone' in pickerContext ? pickerContext.priorityZone : null}
         />
+      )}
+      </div>
+      {/* 🧩 Slidebar mobile: FAB + drawer (oculto en desktop) */}
+      <button
+        type="button"
+        onClick={() => setShowLineupMobile(true)}
+        className="lg:hidden fixed bottom-4 left-4 z-30 w-12 h-12 rounded-full bg-primary text-primary-fg shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        aria-label="Abrir formación"
+      >
+        <span className="text-lg" aria-hidden>🧩</span>
+      </button>
+      {showLineupMobile && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowLineupMobile(false)}
+        >
+          <div
+            className="absolute left-0 top-0 bottom-0 w-28 bg-surface border-r border-border p-2 shadow-xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-1.5 px-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-fg">Formación</span>
+              <button
+                type="button"
+                onClick={() => setShowLineupMobile(false)}
+                className="text-muted-fg hover:text-fg text-sm leading-none"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <LineupSlidebar />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
