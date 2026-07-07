@@ -751,14 +751,14 @@ const LiveMatchPagePro = () => {
       <button
         type="button"
         onClick={() => setShowLineupMobile(true)}
-        className="lg:hidden fixed bottom-4 left-4 z-30 w-12 h-12 rounded-full bg-primary text-primary-fg shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        className="lg:hidden fixed bottom-20 md:bottom-4 left-4 z-40 w-12 h-12 rounded-full bg-primary text-primary-fg shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
         aria-label="Abrir formación"
       >
         <span className="text-lg" aria-hidden>🧩</span>
       </button>
       {showLineupMobile && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
           onClick={() => setShowLineupMobile(false)}
         >
           <div
