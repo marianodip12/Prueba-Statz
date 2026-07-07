@@ -1,22 +1,20 @@
 import type { HandballEvent, LineupSnapshot } from './types';
 
 /**
- * 📊 Análisis por formación.
+ * 📊 Análisis por formación — v2 (ataque + defensa + eficacia + balance).
  *
  * Cada evento de mi equipo (team='home') puede llevar un `lineup` con quién
- * estaba en cancha. Acá agregamos esos eventos por combinación de jugadores
- * para responder: "¿cuántos goles hice y recibí con cada formación?".
+ * estaba en cancha. Agregamos esos eventos por combinación de jugadores para
+ * responder: "¿qué tan bien juega el equipo con cada alineación?".
  *
- * Mariano pidió poder ver DOS modos por separado:
- *   - 'field'    → la formación cuenta solo los 6 de campo (ignora arquero)
- *   - 'fieldGk'  → la formación cuenta los 6 de campo + el arquero
+ * Modos:
+ *   - 'field'    → solo los 6/7 de campo (ignora arquero)
+ *   - 'fieldGk'  → los 6/7 de campo + el arquero
  *
- * Goles a favor  = goles de mi equipo (home) con esa formación en cancha.
- * Goles recibidos = goles del rival (away) mientras esa formación estaba.
- *   ⚠️ Para los goles recibidos necesitamos saber qué formación tenía yo
- *   cuando el rival convirtió. Como el lineup solo se adjunta a MIS eventos,
- *   reconstruimos la formación "vigente" recorriendo los eventos en orden:
- *   la última formación vista en un evento home es la que estaba activa.
+ * Los eventos del rival (team='away') NO traen mi lineup. Para imputarles la
+ * formación defensiva que YO tenía en ese instante, reconstruimos la
+ * "formación vigente" recorriendo los eventos en orden cronológico: la
+ * última formación vista en un evento home es la que estaba activa.
  */
 
 export type LineupMode = 'field' | 'fieldGk';
@@ -28,17 +26,48 @@ export interface FormationStat {
   field: number[];
   /** Arquero (solo en modo 'fieldGk'). */
   goalkeeper: number | null;
-  /** Goles convertidos por mi equipo con esta formación. */
+
+  // ─── Ofensiva (yo con esta formación) ───────────────────────────
+  /** Goles convertidos por mi equipo. */
   goalsFor: number;
-  /** Goles recibidos del rival con esta formación. */
-  goalsAgainst: number;
-  /** Tiros totales de mi equipo (goal+miss+saved+post). */
+  /** Tiros errados por mi equipo. */
+  missedShots: number;
+  /** Tiros míos atajados por el GK rival. */
+  savedShots: number;
+  /** Palos que pegué. */
+  postedShots: number;
+  /** Tiros totales de mi equipo (goles + errados + atajados + palos). */
   shots: number;
-  /** Cantidad de eventos de mi equipo con esta formación (proxy de "uso"). */
-  myEvents: number;
+  /** Pérdidas de mi equipo (turnover). */
+  turnovers: number;
+
+  // ─── Defensiva (rival contra esta formación) ────────────────────
+  /** Goles recibidos. */
+  goalsAgainst: number;
+  /** Atajadas de mi arquero. */
+  saves: number;
+  /** Errados del rival. */
+  opponentMisses: number;
+  /** Palos del rival. */
+  opponentPosts: number;
+  /** Tiros totales del rival contra esta formación. */
+  opponentShots: number;
+
+  // ─── Balance ────────────────────────────────────────────────────
+  /** Diferencia de gol (GF − GC). */
+  goalDiff: number;
+  /** Eventos totales atribuibles (uso de la formación). */
+  totalEvents: number;
+
+  // ─── Eficacias (0..1, o null si no hubo tiros suficientes) ──────
+  /** Eficacia ofensiva = goles / tiros. `null` si `shots === 0`. */
+  attackEfficiency: number | null;
+  /** Eficacia defensiva = 1 − (goles en contra / tiros del rival). `null` si `opponentShots === 0`. */
+  defenseEfficiency: number | null;
 }
 
-const SHOT_TYPES = new Set(['goal', 'miss', 'saved', 'post']);
+const MY_SHOT_TYPES = new Set(['goal', 'miss', 'saved', 'post']);
+const OPP_SHOT_TYPES = new Set(['goal', 'miss', 'saved', 'post']);
 
 /** Clave canónica de una formación según el modo. */
 const lineupKey = (lu: LineupSnapshot, mode: LineupMode): string => {
@@ -50,45 +79,66 @@ const lineupKey = (lu: LineupSnapshot, mode: LineupMode): string => {
 /**
  * Agrega estadísticas por formación.
  * Solo considera eventos que tengan `lineup` (los viejos sin formación se ignoran).
+ * Los eventos del rival se imputan a la última formación vigente.
  */
 export const perFormation = (
   events: HandballEvent[],
   mode: LineupMode,
 ): FormationStat[] => {
   const map = new Map<string, FormationStat>();
-  // Formación vigente, reconstruida en orden cronológico a partir de mis eventos.
   let current: LineupSnapshot | null = null;
 
   const ordered = [...events].sort((a, b) => a.min - b.min);
 
   for (const e of ordered) {
-    // Actualizamos la formación vigente con cada evento mío que la traiga.
+    // Actualizar formación vigente con cada evento mío que la traiga
     if (e.team === 'home' && e.lineup && e.lineup.field.length > 0) {
       current = e.lineup;
     }
 
     if (e.team === 'home') {
-      // Evento de mi equipo: usa su propia formación (o la vigente como respaldo).
+      // ── Evento de mi equipo ──────────────────────────────────────
       const lu = e.lineup && e.lineup.field.length > 0 ? e.lineup : current;
       if (!lu) continue;
       const key = lineupKey(lu, mode);
       const stat = map.get(key) ?? blank(key, lu, mode);
-      stat.myEvents++;
+      stat.totalEvents++;
+      if (MY_SHOT_TYPES.has(e.type)) stat.shots++;
       if (e.type === 'goal') stat.goalsFor++;
-      if (SHOT_TYPES.has(e.type)) stat.shots++;
+      else if (e.type === 'miss') stat.missedShots++;
+      else if (e.type === 'saved') stat.savedShots++;
+      else if (e.type === 'post') stat.postedShots++;
+      else if (e.type === 'turnover') stat.turnovers++;
       map.set(key, stat);
-    } else if (e.team === 'away' && e.type === 'goal') {
-      // Gol del rival: lo imputamos a la formación que YO tenía en ese momento.
+    } else if (e.team === 'away') {
+      // ── Evento del rival: se imputa a mi formación vigente ───────
       if (!current) continue;
+      // Solo trackeamos tiros del rival + saved (nuestras atajadas).
+      // Turnovers/tarjetas/timeouts del rival no aportan a mi análisis.
+      if (!OPP_SHOT_TYPES.has(e.type)) continue;
       const key = lineupKey(current, mode);
       const stat = map.get(key) ?? blank(key, current, mode);
-      stat.goalsAgainst++;
+      stat.totalEvents++;
+      stat.opponentShots++;
+      if (e.type === 'goal') stat.goalsAgainst++;
+      else if (e.type === 'saved') stat.saves++; // rival tiró y mi GK atajó
+      else if (e.type === 'miss') stat.opponentMisses++;
+      else if (e.type === 'post') stat.opponentPosts++;
       map.set(key, stat);
     }
   }
 
-  return Array.from(map.values()).sort(
-    (a, b) => b.myEvents - a.myEvents || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst),
+  // Post-proceso: calcular derivados (goalDiff + eficacias)
+  const stats = Array.from(map.values()).map((s) => ({
+    ...s,
+    goalDiff: s.goalsFor - s.goalsAgainst,
+    attackEfficiency: s.shots > 0 ? s.goalsFor / s.shots : null,
+    defenseEfficiency: s.opponentShots > 0 ? 1 - s.goalsAgainst / s.opponentShots : null,
+  }));
+
+  // Orden: por uso (totalEvents) desc; desempate por diferencia de gol
+  return stats.sort(
+    (a, b) => b.totalEvents - a.totalEvents || b.goalDiff - a.goalDiff,
   );
 };
 
@@ -97,9 +147,20 @@ const blank = (key: string, lu: LineupSnapshot, mode: LineupMode): FormationStat
   field: [...lu.field].sort((a, b) => a - b),
   goalkeeper: mode === 'fieldGk' ? lu.goalkeeper : null,
   goalsFor: 0,
-  goalsAgainst: 0,
+  missedShots: 0,
+  savedShots: 0,
+  postedShots: 0,
   shots: 0,
-  myEvents: 0,
+  turnovers: 0,
+  goalsAgainst: 0,
+  saves: 0,
+  opponentMisses: 0,
+  opponentPosts: 0,
+  opponentShots: 0,
+  goalDiff: 0,
+  totalEvents: 0,
+  attackEfficiency: null,
+  defenseEfficiency: null,
 });
 
 /** ¿Este partido tiene datos de formación cargados? */

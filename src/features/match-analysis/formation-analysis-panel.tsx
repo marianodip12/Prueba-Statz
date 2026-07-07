@@ -4,9 +4,16 @@ import { perFormation, hasFormationData, type LineupMode } from '@/domain/format
 import { cn } from '@/lib/cn';
 
 /**
- * 📊 Panel de análisis por formación (página de análisis del partido).
- * Muestra goles a favor / en contra / eficacia por combinación de jugadores,
- * con toggle entre "solo campo (6)" y "campo + arquero".
+ * 📊 Panel de análisis por formación — v2.
+ *
+ * Tabla con una fila por combinación de jugadores, mostrando:
+ *   Ataque:  GF · Errados · Atajados · Palos · Tiros · % Ef ataque
+ *   Defensa: GC · Atajadas de mi GK · Err rival · Palos rival · Tiros rival · % Ef defensa
+ *   Balance: Diferencia de gol · Uso (eventos totales)
+ *
+ * Toggle entre "solo campo" y "campo + arquero".
+ *
+ * En mobile la tabla es scrolleable horizontal (13-14 columnas no caben en 400px).
  */
 export const FormationAnalysisPanel = ({
   events,
@@ -36,6 +43,9 @@ export const FormationAnalysisPanel = ({
     );
   }
 
+  const pct = (v: number | null) =>
+    v == null ? '—' : `${Math.round(v * 100)}%`;
+
   return (
     <section className="rounded-lg border border-border bg-surface p-3 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -59,62 +69,89 @@ export const FormationAnalysisPanel = ({
       </div>
 
       <div className="overflow-x-auto -mx-1 px-1">
-        <table className="w-full text-[11px]">
+        <table className="w-full text-[11px] whitespace-nowrap">
           <thead>
             <tr className="text-muted-fg border-b border-border">
-              <th className="text-left font-medium py-1.5 pr-2">Formación</th>
+              <th className="text-left font-medium py-1.5 pr-2 sticky left-0 bg-surface">Formación</th>
               {mode === 'fieldGk' && <th className="text-center font-medium py-1.5 px-1">Arq</th>}
-              <th className="text-center font-medium py-1.5 px-1.5">GF</th>
-              <th className="text-center font-medium py-1.5 px-1.5">GC</th>
-              <th className="text-center font-medium py-1.5 px-1.5">Dif</th>
-              <th className="text-center font-medium py-1.5 px-1.5">Tiros</th>
-              <th className="text-center font-medium py-1.5 px-1.5">%Ef</th>
+              {/* Ataque */}
+              <th className="text-center font-medium py-1.5 px-1.5 border-l border-border/40 text-success">GF</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">Err</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">Ataj</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">Palo</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">Tiros</th>
+              <th className="text-center font-medium py-1.5 px-1.5 text-success">%Ef</th>
+              {/* Defensa */}
+              <th className="text-center font-medium py-1.5 px-1.5 border-l border-border/40 text-danger">GC</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">AtajGK</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">ErrR</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">PaloR</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">TirosR</th>
+              <th className="text-center font-medium py-1.5 px-1.5 text-danger">%Ef</th>
+              {/* Balance */}
+              <th className="text-center font-medium py-1.5 px-1.5 border-l border-border/40 text-primary">Dif</th>
+              <th className="text-center font-medium py-1.5 px-1 text-muted-fg">Uso</th>
             </tr>
           </thead>
           <tbody>
-            {stats.map((s) => {
-              const diff = s.goalsFor - s.goalsAgainst;
-              const eff = s.shots > 0 ? Math.round((s.goalsFor / s.shots) * 100) : 0;
-              return (
-                <tr key={s.key} className="border-b border-border/50 last:border-b-0">
-                  <td className="py-1.5 pr-2">
-                    <div className="flex flex-wrap gap-1">
-                      {s.field.map((num) => (
-                        <span
-                          key={num}
-                          className="inline-flex items-center gap-0.5 rounded bg-surface-2 px-1 py-0.5 text-[10px]"
-                          title={nameOf(num)}
-                        >
-                          <span className="font-semibold text-success">{num}</span>
-                          <span className="text-muted-fg truncate max-w-[60px]">{nameOf(num)}</span>
-                        </span>
-                      ))}
-                    </div>
+            {stats.map((s) => (
+              <tr key={s.key} className="border-b border-border/50 last:border-b-0">
+                <td className="py-1.5 pr-2 sticky left-0 bg-surface">
+                  <div className="flex flex-wrap gap-1">
+                    {s.field.map((num) => (
+                      <span
+                        key={num}
+                        className="inline-flex items-center gap-0.5 rounded bg-surface-2 px-1 py-0.5 text-[10px]"
+                        title={nameOf(num)}
+                      >
+                        <span className="font-semibold text-success">{num}</span>
+                        <span className="text-muted-fg truncate max-w-[60px]">{nameOf(num)}</span>
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                {mode === 'fieldGk' && (
+                  <td className="text-center px-1 text-info font-semibold">
+                    {s.goalkeeper == null ? '⊘' : s.goalkeeper}
                   </td>
-                  {mode === 'fieldGk' && (
-                    <td className="text-center px-1 text-info font-semibold">
-                      {s.goalkeeper == null ? '⊘' : s.goalkeeper}
-                    </td>
-                  )}
-                  <td className="text-center px-1.5 font-mono font-semibold text-success">{s.goalsFor}</td>
-                  <td className="text-center px-1.5 font-mono font-semibold text-danger">{s.goalsAgainst}</td>
-                  <td className={cn('text-center px-1.5 font-mono font-semibold', diff > 0 ? 'text-success' : diff < 0 ? 'text-danger' : 'text-muted-fg')}>
-                    {diff > 0 ? `+${diff}` : diff}
-                  </td>
-                  <td className="text-center px-1.5 font-mono text-muted-fg">{s.shots}</td>
-                  <td className="text-center px-1.5 font-mono text-primary">{eff}%</td>
-                </tr>
-              );
-            })}
+                )}
+                {/* Ataque */}
+                <td className="text-center px-1.5 font-mono font-semibold text-success border-l border-border/40">{s.goalsFor}</td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.missedShots}</td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.savedShots}</td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.postedShots}</td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.shots}</td>
+                <td className="text-center px-1.5 font-mono font-semibold text-success">{pct(s.attackEfficiency)}</td>
+                {/* Defensa */}
+                <td className="text-center px-1.5 font-mono font-semibold text-danger border-l border-border/40">{s.goalsAgainst}</td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.saves}</td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.opponentMisses}</td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.opponentPosts}</td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.opponentShots}</td>
+                <td className="text-center px-1.5 font-mono font-semibold text-danger">{pct(s.defenseEfficiency)}</td>
+                {/* Balance */}
+                <td className={cn('text-center px-1.5 font-mono font-semibold border-l border-border/40',
+                  s.goalDiff > 0 ? 'text-success' : s.goalDiff < 0 ? 'text-danger' : 'text-muted-fg')}>
+                  {s.goalDiff > 0 ? `+${s.goalDiff}` : s.goalDiff}
+                </td>
+                <td className="text-center px-1 font-mono text-muted-fg">{s.totalEvents}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
-      <p className="text-[9px] text-muted-fg leading-relaxed">
-        <strong>GF</strong> goles a favor · <strong>GC</strong> goles en contra (recibidos mientras esa
-        formación estaba en cancha) · <strong>Dif</strong> diferencia · <strong>%Ef</strong> eficacia de tiro.
-        El orden es por uso (cuántas jugadas tuvo cada formación).
-      </p>
+      <div className="text-[9px] text-muted-fg leading-relaxed space-y-0.5">
+        <p>
+          <strong className="text-success">Ataque:</strong> GF goles a favor · Err errados · Ataj atajados por GK rival · Palo · Tiros totales · %Ef eficacia (goles/tiros).
+        </p>
+        <p>
+          <strong className="text-danger">Defensa:</strong> GC goles en contra · AtajGK atajadas de mi arquero · ErrR errados del rival · PaloR palos del rival · TirosR tiros totales del rival · %Ef eficacia defensiva (1 − GC/TirosR).
+        </p>
+        <p>
+          <strong className="text-primary">Balance:</strong> Dif diferencia de gol · Uso eventos atribuibles a la formación. Ordenado por uso, desempate por diferencia.
+        </p>
+      </div>
     </section>
   );
 };
