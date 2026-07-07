@@ -279,7 +279,22 @@ export const useMatchStore = create<MatchStoreState>()(
               lineup: attachLineup,
             } as HandballEvent,
           ];
-          return { liveEvents: rescoreEvents(nextEvents) };
+          // 🟨 Auto-sacar del campo/arco al jugador si el evento es una sanción
+          // (2min o roja) de mi equipo — así el slidebar refleja al toque.
+          const isExclusion = incoming.type === 'exclusion' || incoming.type === 'red_card';
+          let nextLineup = s.liveLineup;
+          if (isExclusion && incoming.team === 'home' && incoming.sanctioned) {
+            const num = incoming.sanctioned.number;
+            const wasInField = s.liveLineup.field.includes(num);
+            const wasGk = s.liveLineup.goalkeeper === num;
+            if (wasInField || wasGk) {
+              nextLineup = {
+                field: wasInField ? s.liveLineup.field.filter((n) => n !== num) : s.liveLineup.field,
+                goalkeeper: wasGk ? null : s.liveLineup.goalkeeper,
+              };
+            }
+          }
+          return { liveEvents: rescoreEvents(nextEvents), liveLineup: nextLineup };
         }),
       updateLiveEvent: (id, patch) =>
         set((s) => {

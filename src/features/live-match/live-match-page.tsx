@@ -456,9 +456,9 @@ const LiveMatchPagePro = () => {
     <div className="pb-4">
       {/* 🧩 Slidebar lateral fijo — visible en todos los breakpoints */}
       <aside
-        className="flex flex-col fixed left-2 w-14 top-16 bottom-16 z-40
+        className="flex flex-col fixed left-2 w-14 top-2 bottom-16 z-40
                    md:left-4 md:w-16 md:bottom-4
-                   lg:left-[272px] lg:w-24 lg:top-4"
+                   lg:left-[272px] lg:w-24"
       >
         <LineupSlidebar />
       </aside>
