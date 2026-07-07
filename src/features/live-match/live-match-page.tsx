@@ -453,14 +453,14 @@ const LiveMatchPagePro = () => {
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-[104px_minmax(0,1fr)] lg:gap-3 pb-4">
-      {/* 🧩 Slidebar lateral (solo desktop) */}
-      <aside className="hidden lg:flex lg:flex-col lg:sticky lg:top-2 lg:self-start lg:max-h-[calc(100vh-1rem)] lg:overflow-hidden">
+    <div className="pb-4">
+      {/* 🧩 Slidebar lateral fijo al viewport (solo desktop lg+) */}
+      <aside className="hidden lg:flex lg:flex-col fixed top-4 bottom-4 left-[272px] w-24 z-10">
         <LineupSlidebar />
       </aside>
 
-      {/* Contenido principal */}
-      <div className="space-y-3 min-w-0">
+      {/* Contenido principal — padding-left en desktop para no tapar el slidebar fijo */}
+      <div className="space-y-3 min-w-0 lg:pl-28">
       <SuperpowerBar />
       <Scoreboard
         home={match.home}
