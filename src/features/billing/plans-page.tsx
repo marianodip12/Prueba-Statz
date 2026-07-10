@@ -160,6 +160,30 @@ export const PlansPage = () => {
           recommended
         />
 
+        {/* PRO + */}
+        <PlanCard
+          name="PRO +"
+          tagIcon="🧩+📈"
+          tagColor="#7C3AED"
+          tagTextColor="#DDD6FE"
+          price={cycle === 'annual' ? '$75' : '$8'}
+          priceSuffix={cycle === 'annual' ? '/año' : '/mes'}
+          priceSubtext={cycle === 'annual' ? '≈ 8.940 ARS/mes' : '≈ 11.440 ARS/mes'}
+          tagline="Análisis táctico por formación"
+          features={[
+            { text: 'Todo lo de Pro', highlight: false },
+            { text: 'Partidos ilimitados', highlight: false },
+            { text: '🧩 Análisis por formación', highlight: 'good' },
+            { text: '📈 Evolución del marcador por formación', highlight: 'good' },
+            { text: 'Modo Super completo en vivo', highlight: 'good' },
+            { text: 'Línea temporal + gráfico de score', highlight: 'good' },
+          ]}
+          ctaLabel={currentPlan === 'pro_plus' ? 'Plan actual' : 'Probar 7 días gratis'}
+          ctaDisabled={currentPlan === 'pro_plus'}
+          onClick={() => handleSelectPlan('pro_plus')}
+          isCurrent={currentPlan === 'pro_plus'}
+        />
+
         {/* CLUB */}
         <PlanCard
           name="CLUB"

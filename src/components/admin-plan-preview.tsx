@@ -11,11 +11,12 @@ import { getPlanPreview, setPlanPreview, type PlanPreview } from '@/lib/use-plan
 import { useEffect, useState } from 'react';
 
 const OPTIONS: { value: PlanPreview; label: string }[] = [
-  { value: null,    label: 'Real' },
-  { value: 'free',  label: 'Free' },
-  { value: 'pro',   label: 'Pro' },
-  { value: 'club',  label: 'Club' },
-  { value: 'elite', label: 'Elite' },
+  { value: null,       label: 'Real' },
+  { value: 'free',     label: 'Free' },
+  { value: 'pro',      label: 'Pro' },
+  { value: 'pro_plus', label: 'Pro +' },
+  { value: 'club',     label: 'Club' },
+  { value: 'elite',    label: 'Elite' },
 ];
 
 export const AdminPlanPreview = () => {

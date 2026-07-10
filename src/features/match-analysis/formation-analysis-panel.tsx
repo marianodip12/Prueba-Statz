@@ -7,6 +7,7 @@ import {
   type LineupMode,
   type FormationTimeline,
 } from '@/domain/formations';
+import { usePlan, hasFormationAnalysis } from '@/lib/use-plan';
 import { cn } from '@/lib/cn';
 
 /**
@@ -29,6 +30,7 @@ export const FormationAnalysisPanel = ({
   events: HandballEvent[];
   myTeam: HandballTeam | null;
 }) => {
+  const plan = usePlan();
   const [mode, setMode] = useState<LineupMode>('field');
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
@@ -43,6 +45,22 @@ export const FormationAnalysisPanel = ({
 
   const toggle = (key: string) =>
     setExpandedKey((prev) => (prev === key ? null : key));
+
+  // Gate por plan: requiere Pro+ (o superior, o beta activa)
+  if (!hasFormationAnalysis(plan)) {
+    return (
+      <section className="rounded-lg border border-border bg-surface p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-fg">📊 Análisis por formación</span>
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[#7C3AED]/15 text-[#7C3AED] uppercase tracking-wider">Pro +</span>
+        </div>
+        <p className="text-[11px] text-muted-fg leading-relaxed">
+          Ve qué formaciones rindieron mejor: goles a favor y en contra, eficacia ofensiva y defensiva por lineup, y evolución del marcador durante cada tramo. Requiere plan <strong className="text-fg">Pro +</strong> o superior.
+        </p>
+        <a href="/app/plan" className="inline-block text-[11px] font-medium text-primary hover:underline">Ver planes →</a>
+      </section>
+    );
+  }
 
   if (!has) {
     return (
@@ -122,7 +140,7 @@ export const FormationAnalysisPanel = ({
                     key={s.key}
                     className={cn(
                       'border-b border-border/50 last:border-b-0 cursor-pointer transition-colors',
-                      isExpanded ? 'bg-primary/5' : 'hover:bg-surface-2',
+                      isExpanded ? 'bg-surface-2/60' : 'hover:bg-surface-2/40',
                     )}
                     onClick={() => toggle(s.key)}
                   >
@@ -172,7 +190,7 @@ export const FormationAnalysisPanel = ({
                   </tr>
 
                   {isExpanded && timeline && (
-                    <tr key={`${s.key}-detail`} className="bg-primary/5">
+                    <tr key={`${s.key}-detail`} className="bg-surface-2/40">
                       <td colSpan={colSpan} className="p-3">
                         <FormationDetail timeline={timeline} matchLastMin={matchLastMin} />
                       </td>
@@ -369,10 +387,10 @@ const ScoreChart = ({
       {[0, Math.floor(maxScore / 2), maxScore].map((v) => (
         <text key={v} x={P.left - 3} y={yOf(v) + 3} textAnchor="end" fontSize="8" fill="currentColor" className="text-muted-fg">{v}</text>
       ))}
-      {/* Línea home */}
-      <path d={pathOf(homePts)} fill="none" stroke="currentColor" className="text-success" strokeWidth="1.5" />
-      {/* Línea away */}
-      <path d={pathOf(awayPts)} fill="none" stroke="currentColor" className="text-danger" strokeWidth="1.5" />
+      {/* Línea home (yo) — verde hardcodeado */}
+      <path d={pathOf(homePts)} fill="none" stroke="#22c55e" strokeWidth="1.5" />
+      {/* Línea away (rival) — rojo hardcodeado */}
+      <path d={pathOf(awayPts)} fill="none" stroke="#ef4444" strokeWidth="1.5" />
       {/* Puntos de goles */}
       {points.filter((p) => p.eventType === 'goal').map((p, i) => (
         <circle
@@ -380,17 +398,15 @@ const ScoreChart = ({
           cx={xOf(p.minute)}
           cy={yOf(p.isHome ? p.home : p.away)}
           r="2"
-          fill="currentColor"
-          className={p.isHome ? 'text-success' : 'text-danger'}
+          fill={p.isHome ? '#22c55e' : '#ef4444'}
         />
       ))}
-      {/* Leyenda */}
-      <g fontSize="8" fill="currentColor">
-        <rect x={W - P.right - 60} y={P.top} width="60" height="16" fill="var(--surface)" opacity="0.9" />
-        <line x1={W - P.right - 55} y1={P.top + 4} x2={W - P.right - 46} y2={P.top + 4} stroke="currentColor" className="text-success" strokeWidth="1.5" />
-        <text x={W - P.right - 43} y={P.top + 6} className="text-fg">Yo</text>
-        <line x1={W - P.right - 25} y1={P.top + 4} x2={W - P.right - 16} y2={P.top + 4} stroke="currentColor" className="text-danger" strokeWidth="1.5" />
-        <text x={W - P.right - 13} y={P.top + 6} className="text-fg">Rival</text>
+      {/* Leyenda (sin caja de fondo blanca, solo etiquetas) */}
+      <g fontSize="8">
+        <line x1={W - P.right - 55} y1={P.top + 4} x2={W - P.right - 46} y2={P.top + 4} stroke="#22c55e" strokeWidth="1.5" />
+        <text x={W - P.right - 43} y={P.top + 6} fill="currentColor" className="text-fg">Yo</text>
+        <line x1={W - P.right - 25} y1={P.top + 4} x2={W - P.right - 16} y2={P.top + 4} stroke="#ef4444" strokeWidth="1.5" />
+        <text x={W - P.right - 13} y={P.top + 6} fill="currentColor" className="text-fg">Rival</text>
       </g>
     </svg>
   );

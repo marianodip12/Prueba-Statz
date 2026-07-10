@@ -17,7 +17,7 @@ const TRANSFER_INFO = {
 
 const WHATSAPP_NUMBER = '541126647764';
 
-export type CheckoutPlan = 'pro' | 'club';
+export type CheckoutPlan = 'pro' | 'pro_plus' | 'club';
 export type BillingCycle = 'monthly' | 'annual';
 
 interface CheckoutDialogProps {
@@ -28,8 +28,9 @@ interface CheckoutDialogProps {
 }
 
 const PLAN_INFO: Record<CheckoutPlan, { label: string; monthlyUsd: number; annualUsd: number }> = {
-  pro:  { label: 'Pro',  monthlyUsd: 5,  annualUsd: 45  },
-  club: { label: 'Club', monthlyUsd: 15, annualUsd: 144 },
+  pro:      { label: 'Pro',   monthlyUsd: 5,  annualUsd: 45  },
+  pro_plus: { label: 'Pro +', monthlyUsd: 8,  annualUsd: 75  },
+  club:     { label: 'Club',  monthlyUsd: 15, annualUsd: 144 },
 };
 
 export const CheckoutDialog = ({ open, onClose, plan, billingCycle }: CheckoutDialogProps) => {
