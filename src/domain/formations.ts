@@ -166,3 +166,121 @@ const blank = (key: string, lu: LineupSnapshot, mode: LineupMode): FormationStat
 /** ¿Este partido tiene datos de formación cargados? */
 export const hasFormationData = (events: HandballEvent[]): boolean =>
   events.some((e) => e.team === 'home' && e.lineup && e.lineup.field.length > 0);
+
+// ═══════════════════════════════════════════════════════════════════
+//   TIMELINE POR FORMACIÓN (para el detalle expandible)
+// ═══════════════════════════════════════════════════════════════════
+
+/** Un tramo temporal continuo en el que esta formación estuvo en cancha. */
+export interface FormationSegment {
+  from: number; // minuto de inicio (inclusive)
+  to: number;   // minuto de fin (inclusive)
+}
+
+/** Un punto del marcador durante la vida de la formación. */
+export interface ScorePoint {
+  minute: number;
+  home: number;
+  away: number;
+  /** Tipo del evento que ocurrió en ese minuto (para colorear puntos). */
+  eventType: string;
+  /** true si el evento es de mi equipo. */
+  isHome: boolean;
+}
+
+export interface FormationTimeline {
+  key: string;
+  /** Rangos de minutos en que se usó esta formación. */
+  segments: FormationSegment[];
+  /** Puntos del marcador durante los tramos activos. */
+  scorePoints: ScorePoint[];
+  /** Score al empezar el primer tramo (para el gráfico). */
+  startScore: { home: number; away: number };
+  /** Score al terminar el último tramo. */
+  endScore: { home: number; away: number };
+}
+
+/**
+ * Devuelve, por cada formación, sus rangos temporales activos y la evolución
+ * del marcador durante esos rangos. Usa la misma lógica de "formación vigente"
+ * que `perFormation`.
+ */
+export const getFormationTimelines = (
+  events: HandballEvent[],
+  mode: LineupMode,
+): Map<string, FormationTimeline> => {
+  const map = new Map<string, FormationTimeline>();
+  let currentKey: string | null = null;
+  let currentSegStart: number | null = null;
+  let home = 0;
+  let away = 0;
+
+  const ordered = [...events].sort((a, b) => a.min - b.min);
+
+  const ensure = (key: string): FormationTimeline => {
+    let t = map.get(key);
+    if (!t) {
+      t = {
+        key,
+        segments: [],
+        scorePoints: [],
+        startScore: { home, away },
+        endScore: { home, away },
+      };
+      map.set(key, t);
+    }
+    return t;
+  };
+
+  const closeSegment = (endMin: number) => {
+    if (currentKey && currentSegStart != null) {
+      const t = ensure(currentKey);
+      t.segments.push({ from: currentSegStart, to: endMin });
+      t.endScore = { home, away };
+      currentSegStart = null;
+    }
+  };
+
+  for (const e of ordered) {
+    // Detectar cambio de formación mirando el lineup del evento (solo home)
+    if (e.team === 'home' && e.lineup && e.lineup.field.length > 0) {
+      const newKey = lineupKey(e.lineup, mode);
+      if (newKey !== currentKey) {
+        closeSegment(e.min);
+        currentKey = newKey;
+        currentSegStart = e.min;
+        // Registrar startScore si es la primera vez que aparece esta formación
+        const t = ensure(currentKey);
+        if (t.segments.length === 0 && t.scorePoints.length === 0) {
+          t.startScore = { home, away };
+        }
+      }
+    }
+
+    // Actualizar score en base al evento
+    let scored = false;
+    if (e.type === 'goal') {
+      if (e.team === 'home') { home++; scored = true; }
+      else if (e.team === 'away') { away++; scored = true; }
+    }
+
+    // Si estamos dentro de un segmento, registrar el punto del score
+    if (currentKey && (scored || e.team === 'home' || e.team === 'away')) {
+      const t = ensure(currentKey);
+      t.scorePoints.push({
+        minute: e.min,
+        home,
+        away,
+        eventType: e.type,
+        isHome: e.team === 'home',
+      });
+      t.endScore = { home, away };
+    }
+  }
+
+  // Cerrar el último segmento con el último minuto visto (o 60 si no hay eventos)
+  const lastMin = ordered.length > 0 ? ordered[ordered.length - 1].min : 60;
+  closeSegment(lastMin);
+
+  return map;
+};

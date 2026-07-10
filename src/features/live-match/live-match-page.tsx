@@ -126,7 +126,7 @@ const adhocGoalkeepersFor = (events: HandballEvent[], gkTeam: Team): PersonRef[]
   return Array.from(byNumber.values()).sort((a, b) => a.number - b.number);
 };
 
-type Mode = 'quick' | 'full';
+type Mode = 'quick' | 'full' | 'super_full';
 
 // Shot flow state: once the user taps a goal quadrant, we enter the
 // "pending shot" state. Steps: outcome → shooter → (maybe) goalkeeper.
@@ -151,6 +151,7 @@ const LiveMatchPagePro = () => {
   const status      = useMatchStore((s) => s.status);
   const match       = useMatchStore((s) => s.liveMatch);
   const events      = useMatchStore((s) => s.liveEvents);
+  const liveLineup  = useMatchStore((s) => s.liveLineup);
   const clock       = useMatchStore((s) => s.liveClock);
   const setClock    = useMatchStore((s) => s.setLiveClock);
   const addEvent    = useMatchStore((s) => s.addLiveEvent);
@@ -512,20 +513,32 @@ const LiveMatchPagePro = () => {
       {/* Mode + auto-switch */}
       <div className="flex gap-2">
         <div className="rounded-lg border border-border bg-surface p-1 flex flex-1">
-          {(['full', 'quick'] as const).map((m) => (
+          {(['full', 'quick', 'super_full'] as const).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => setMode(m)}
               className={cn(
-                'flex-1 h-8 text-xs font-medium rounded-md transition-colors',
+                'flex-1 h-8 text-[11px] font-medium rounded-md transition-colors px-1',
                 mode === m ? 'bg-primary/20 text-primary' : 'text-muted-fg hover:text-fg',
               )}
             >
-              {m === 'full' ? t.live_mode_full : t.live_mode_quick}
+              {m === 'full' ? t.live_mode_full : m === 'quick' ? t.live_mode_quick : 'Super completo'}
             </button>
           ))}
         </div>
+
+      {mode === 'super_full' && liveLineup.field.length === 0 && (
+        <div className="col-span-full basis-full order-last w-full rounded-lg border border-warning/50 bg-warning/10 px-3 py-2 flex items-start gap-2 text-[11px]">
+          <span className="text-base leading-none">⚠️</span>
+          <div className="flex-1">
+            <div className="font-medium text-warning">Falta cargar la formación</div>
+            <div className="text-muted-fg leading-relaxed mt-0.5">
+              En modo <strong>Super completo</strong> cada evento se guarda con la formación que tenías en cancha. Abrí el slidebar de formación y marcá los jugadores antes de registrar eventos, sino van a quedar sin lineup asociado.
+            </div>
+          </div>
+        </div>
+      )}
         <button
           type="button"
           onClick={() => setAutoSwitch(!autoSwitch)}
