@@ -20,6 +20,7 @@ import { BillingReturnPage } from '@/features/billing/billing-return-page';
 import { SupportPage } from '@/features/support/support-page';
 import { StaffPage } from '@/features/staff/staff-page';
 import { PlayerHomePage } from '@/features/player/player-home-page';
+import { PlayerLoadMatchPage } from '@/features/player/player-load-match-page';
 import { ProfileTypeGuard } from '@/features/player/profile-type-guard';
 import { I18nProvider } from '@/lib/i18n';
 import { AuthProvider } from '@/lib/auth';
@@ -62,6 +63,7 @@ const router = createBrowserRouter([
 
           // Rutas de jugador (coaches redirigen a /app)
           { path: 'player/home',     element: <ProfileTypeGuard require="player"><PlayerHomePage /></ProfileTypeGuard> },
+          { path: 'player/load',     element: <ProfileTypeGuard require="player"><PlayerLoadMatchPage /></ProfileTypeGuard> },
 
           // Rutas compartidas (admin, planes, soporte, staff, billing) — sin gate por rol
           { path: 'admin',           element: <AdminPage /> },
