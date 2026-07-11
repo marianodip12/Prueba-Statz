@@ -220,6 +220,10 @@ const TabBtn = ({
 const extractError = (e: unknown, fallback: string): string => {
   if (e && typeof e === 'object') {
     const err = e as { message?: string; details?: string; hint?: string; code?: string };
+    // Error específico de Supabase cuando el schema cache está stale
+    if (err.code === 'PGRST202') {
+      return 'El chat está inicializándose. Reintentando en unos segundos…';
+    }
     const parts = [err.message, err.details, err.hint, err.code ? `(${err.code})` : null]
       .filter(Boolean);
     if (parts.length > 0) return parts.join(' · ');
@@ -228,15 +232,26 @@ const extractError = (e: unknown, fallback: string): string => {
   return fallback;
 };
 
+/** Detecta si un error es PGRST202 (schema cache stale). */
+const isPgrst202 = (e: unknown): boolean => {
+  if (e && typeof e === 'object') {
+    const err = e as { code?: string; message?: string };
+    return err.code === 'PGRST202' ||
+      (typeof err.message === 'string' && err.message.includes('schema cache'));
+  }
+  return false;
+};
+
 const ChatPanel = ({ onMarkedRead }: { onMarkedRead: () => void }) => {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSchemaStale, setIsSchemaStale] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Poll de mensajes cada 5s
+  // Poll de mensajes cada 5s (más rápido si hay schema stale para retry)
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -246,7 +261,7 @@ const ChatPanel = ({ onMarkedRead }: { onMarkedRead: () => void }) => {
         setMessages(msgs);
         setLoading(false);
         setError(null);
-        // Marcar admin messages como leídos
+        setIsSchemaStale(false);
         if (msgs.some((m) => m.sender_is_admin && !m.read)) {
           try { await markMyAdminMessagesRead(); onMarkedRead(); } catch { /* ignore */ }
         }
@@ -254,14 +269,17 @@ const ChatPanel = ({ onMarkedRead }: { onMarkedRead: () => void }) => {
         console.error('[support chat] list_my_support_messages failed:', e);
         if (!cancelled) {
           setError(extractError(e, 'Error cargando mensajes'));
+          setIsSchemaStale(isPgrst202(e));
           setLoading(false);
         }
       }
     };
     void load();
-    const iv = window.setInterval(load, POLL_INTERVAL_MS);
+    // Retry más agresivo si hay PGRST202: cada 3s en vez de 5s
+    const interval = isSchemaStale ? 3000 : POLL_INTERVAL_MS;
+    const iv = window.setInterval(load, interval);
     return () => { cancelled = true; window.clearInterval(iv); };
-  }, [onMarkedRead]);
+  }, [onMarkedRead, isSchemaStale]);
 
   // Auto-scroll al fondo cuando llega mensaje nuevo
   useEffect(() => {
@@ -278,12 +296,13 @@ const ChatPanel = ({ onMarkedRead }: { onMarkedRead: () => void }) => {
     try {
       await postSupportMessage(text);
       setInput('');
-      // Refresh immediately
       const msgs = await listMySupportMessages();
       setMessages(msgs);
+      setIsSchemaStale(false);
     } catch (e) {
       console.error('[support chat] post_support_message failed:', e);
       setError(extractError(e, 'No pudimos enviar el mensaje'));
+      setIsSchemaStale(isPgrst202(e));
     } finally {
       setSending(false);
     }
@@ -311,8 +330,16 @@ const ChatPanel = ({ onMarkedRead }: { onMarkedRead: () => void }) => {
       </div>
 
       {error && (
-        <div className="mx-3 my-2 rounded-md border border-danger/40 bg-danger/10 px-2 py-1.5 text-[11px] text-danger">
-          {error}
+        <div className={cn(
+          'mx-3 my-2 rounded-md px-2 py-1.5 text-[11px] flex items-start gap-2',
+          isSchemaStale
+            ? 'border border-amber-500/40 bg-amber-500/10 text-amber-500'
+            : 'border border-danger/40 bg-danger/10 text-danger',
+        )}>
+          {isSchemaStale && (
+            <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse mt-0.5 shrink-0" />
+          )}
+          <span>{error}</span>
         </div>
       )}
 
