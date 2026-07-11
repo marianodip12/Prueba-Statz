@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/cn';
@@ -71,7 +71,7 @@ export const SupportButton = () => {
     dismissGreeting();
   };
 
-  const handleMarkedRead = () => setUnreadCount(0);
+  const handleMarkedRead = useCallback(() => setUnreadCount(0), []);
 
   const waUrl = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Hola! Necesito ayuda con StatzPro')}`;
   const mailUrl = `mailto:${EMAIL}?subject=${encodeURIComponent('Soporte StatzPro')}`;
@@ -216,6 +216,18 @@ const TabBtn = ({
 
 // ─── Chat panel ──────────────────────────────────────────────────────────
 
+/** Extrae un mensaje legible de un error de Supabase o de cualquier throw. */
+const extractError = (e: unknown, fallback: string): string => {
+  if (e && typeof e === 'object') {
+    const err = e as { message?: string; details?: string; hint?: string; code?: string };
+    const parts = [err.message, err.details, err.hint, err.code ? `(${err.code})` : null]
+      .filter(Boolean);
+    if (parts.length > 0) return parts.join(' · ');
+  }
+  if (e instanceof Error && e.message) return e.message;
+  return fallback;
+};
+
 const ChatPanel = ({ onMarkedRead }: { onMarkedRead: () => void }) => {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,13 +245,15 @@ const ChatPanel = ({ onMarkedRead }: { onMarkedRead: () => void }) => {
         if (cancelled) return;
         setMessages(msgs);
         setLoading(false);
+        setError(null);
         // Marcar admin messages como leídos
         if (msgs.some((m) => m.sender_is_admin && !m.read)) {
           try { await markMyAdminMessagesRead(); onMarkedRead(); } catch { /* ignore */ }
         }
       } catch (e) {
+        console.error('[support chat] list_my_support_messages failed:', e);
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Error cargando mensajes');
+          setError(extractError(e, 'Error cargando mensajes'));
           setLoading(false);
         }
       }
@@ -268,7 +282,8 @@ const ChatPanel = ({ onMarkedRead }: { onMarkedRead: () => void }) => {
       const msgs = await listMySupportMessages();
       setMessages(msgs);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos enviar el mensaje');
+      console.error('[support chat] post_support_message failed:', e);
+      setError(extractError(e, 'No pudimos enviar el mensaje'));
     } finally {
       setSending(false);
     }
