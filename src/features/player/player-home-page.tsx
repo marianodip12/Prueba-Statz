@@ -60,9 +60,19 @@ export const PlayerHomePage = () => {
     <div className="space-y-6">
       {isPreviewActive && <PreviewNotice />}
 
-      <div>
-        <h1 className="text-2xl font-bold mb-1">Mis estadísticas</h1>
-        <p className="text-xs text-muted-fg">Resumen histórico personal</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">Mis estadísticas</h1>
+          <p className="text-xs text-muted-fg">Resumen histórico personal</p>
+        </div>
+        <button
+          type="button"
+          disabled
+          title="En construcción"
+          className="px-4 py-2 rounded-md bg-primary/20 border border-primary/40 text-primary font-semibold text-xs opacity-60 cursor-not-allowed whitespace-nowrap"
+        >
+          + Cargar partido (próximamente)
+        </button>
       </div>
 
       {!s ? (
