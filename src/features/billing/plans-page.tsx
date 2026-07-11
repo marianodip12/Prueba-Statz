@@ -12,10 +12,15 @@ type BillingCycle = 'monthly' | 'annual';
 
 export const PlansPage = () => {
   const { plan: currentPlan, matchCount, matchLimit, loading, betaActive } = usePlan();
-  const { isPlayer } = useProfileType();
+  const { isPlayer: profileIsPlayer } = useProfileType();
   const [cycle, setCycle] = useState<BillingCycle>('annual');
   const [checkoutPlan, setCheckoutPlan] = useState<CheckoutPlan | null>(null);
   const [donateOpen, setDonateOpen] = useState(false);
+  // Toggle Entrenador/Jugador — arranca en el rol del user (o coach si no lo sabemos)
+  const [audience, setAudience] = useState<'coach' | 'player'>(() =>
+    profileIsPlayer ? 'player' : 'coach',
+  );
+  const isPlayer = audience === 'player';
 
   const handleSelectPlan = (plan: Plan) => {
     // ⚠️ BETA: pagos bloqueados hasta el fin de la beta (30/8). Todos los
@@ -65,6 +70,34 @@ export const PlansPage = () => {
             </span>
           </div>
         )}
+      </div>
+
+      {/* Toggle Entrenador / Jugador */}
+      <div className="flex justify-center">
+        <div className="inline-flex bg-surface border border-border rounded-lg p-1">
+          <button
+            type="button"
+            onClick={() => setAudience('coach')}
+            className={cn(
+              'px-4 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5',
+              !isPlayer ? 'bg-primary text-primary-fg' : 'text-muted-fg hover:text-fg',
+            )}
+          >
+            <span>🎯</span>
+            Entrenador
+          </button>
+          <button
+            type="button"
+            onClick={() => setAudience('player')}
+            className={cn(
+              'px-4 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5',
+              isPlayer ? 'bg-primary text-primary-fg' : 'text-muted-fg hover:text-fg',
+            )}
+          >
+            <span>🤾</span>
+            Jugador
+          </button>
+        </div>
       </div>
 
       {/* Modos rápido vs completo */}
@@ -119,7 +152,7 @@ export const PlansPage = () => {
         'grid grid-cols-1 gap-3',
         isPlayer ? 'md:grid-cols-2 max-w-3xl mx-auto' : 'md:grid-cols-2 lg:grid-cols-4',
       )}>
-        {/* FREE */}
+        {/* FREE — mismo para ambos */}
         <PlanCard
           name="FREE"
           tagIcon="⚡"
@@ -127,8 +160,14 @@ export const PlansPage = () => {
           tagTextColor="#5DCAA5"
           price="$0"
           priceSuffix="para siempre"
-          tagline="Probá la app con tu equipo"
-          features={[
+          tagline={isPlayer ? 'Probá con tus primeros partidos' : 'Probá la app con tu equipo'}
+          features={isPlayer ? [
+            { text: 'Modo Rápido completo', highlight: false },
+            { text: 'Hasta 10 partidos personales', highlight: 'warn' },
+            { text: 'Stats básicas', highlight: false },
+            { text: 'Historial completo', highlight: false },
+            { text: 'Sin mapa de tiros', highlight: 'muted' },
+          ] : [
             { text: 'Modo Rápido completo', highlight: false },
             { text: 'Equipos ilimitados', highlight: false },
             { text: 'Hasta 10 partidos', highlight: 'warn' },
@@ -143,17 +182,32 @@ export const PlansPage = () => {
           isCurrent={currentPlan === 'free'}
         />
 
-        {/* PRO */}
+        {/* PRO — precio diferenciado según audience */}
         <PlanCard
           name="PRO"
           tagIcon="⚡+📊"
           tagColor="#185FA5"
           tagTextColor="#B5D4F4"
-          price={cycle === 'annual' ? '$45' : '$5'}
+          price={
+            isPlayer
+              ? (cycle === 'annual' ? '$27' : '$3')
+              : (cycle === 'annual' ? '$45' : '$5')
+          }
           priceSuffix={cycle === 'annual' ? '/año' : '/mes'}
-          priceSubtext={cycle === 'annual' ? '≈ 5.360 ARS/mes' : '≈ 7.150 ARS/mes'}
+          priceSubtext={
+            isPlayer
+              ? (cycle === 'annual' ? '≈ 3.220 ARS/mes' : '≈ 4.290 ARS/mes')
+              : (cycle === 'annual' ? '≈ 5.360 ARS/mes' : '≈ 7.150 ARS/mes')
+          }
           tagline="Modo Completo desbloqueado"
-          features={[
+          features={isPlayer ? [
+            { text: 'Todo lo de Free', highlight: false },
+            { text: 'Partidos ilimitados', highlight: false },
+            { text: 'Mapa de tiros + zonas', highlight: 'good' },
+            { text: 'Cuadrante del arco', highlight: 'good' },
+            { text: 'Análisis por período', highlight: 'good' },
+            { text: 'Sub-motivos de pérdida', highlight: false },
+          ] : [
             { text: 'Todo lo de Free', highlight: false },
             { text: 'Partidos ilimitados', highlight: false },
             { text: 'Modo Completo', highlight: 'good' },

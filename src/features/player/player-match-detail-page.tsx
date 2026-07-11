@@ -14,7 +14,18 @@ import {
   type PersonalEventType,
   type PersonalEvent,
 } from '@/lib/personal-profile-api';
+import { GoalGrid } from '@/components/handball/goal-grid';
+import { CourtView } from '@/components/handball/court-view';
 import { cn } from '@/lib/cn';
+import type { CourtZoneId, GoalQuadrantId } from '@/domain/types';
+
+// ─── Shot type colors (mismo mapa que usa el coach) ──────────────────────
+const SHOT_TYPE_COLORS: Record<string, string> = {
+  goal:  '#22c55e',
+  saved: '#3b82f6',
+  post:  '#f59e0b',
+  miss:  '#ef4444',
+};
 
 // ─── Labels ───────────────────────────────────────────────────────────────
 
@@ -97,6 +108,39 @@ export const PlayerMatchDetailPage = () => {
   const events = eventsQ.data ?? [];
   const stats = summarizeEvents(events);
 
+  // Counts por cuadrante del arco, breakdown por tipo (goal/saved/miss/post)
+  const quadCountsByType = useMemo(() => {
+    const acc: Record<string, Partial<Record<GoalQuadrantId, number>>> = {
+      goal: {}, saved: {}, miss: {}, post: {},
+    };
+    for (const e of events) {
+      if (!e.goal_section) continue;
+      if (!isShotType(e.type)) continue;
+      const k = e.goal_section as GoalQuadrantId;
+      const bucket = acc[e.type];
+      if (bucket) bucket[k] = (bucket[k] ?? 0) + 1;
+    }
+    return acc;
+  }, [events]);
+
+  // Counts por zona de la cancha, breakdown por tipo
+  const zoneCountsByType = useMemo(() => {
+    const acc: Record<string, Partial<Record<CourtZoneId, number>>> = {
+      goal: {}, saved: {}, miss: {}, post: {},
+    };
+    for (const e of events) {
+      if (!e.zone) continue;
+      if (!isShotType(e.type)) continue;
+      const k = e.zone as CourtZoneId;
+      const bucket = acc[e.type];
+      if (bucket) bucket[k] = (bucket[k] ?? 0) + 1;
+    }
+    return acc;
+  }, [events]);
+
+  const hasMappedShots =
+    stats.shots > 0 && events.some((e) => e.goal_section || e.zone);
+
   return (
     <div className="mx-auto max-w-2xl space-y-5 pb-4">
       {/* Back button */}
@@ -145,6 +189,59 @@ export const PlayerMatchDetailPage = () => {
           <StatCard label="Exclusiones" value={stats.exclusions} />
         </div>
       </div>
+
+      {/* Mapa de tiros */}
+      {hasMappedShots && (
+        <div>
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg mb-3">
+            Mapa de tiros
+          </h2>
+
+          {/* Leyenda de colores */}
+          <div className="flex flex-wrap gap-3 mb-4 justify-center text-[10px]">
+            <LegendDot color={SHOT_TYPE_COLORS.goal}  label="Gol" />
+            <LegendDot color={SHOT_TYPE_COLORS.saved} label="Atajado" />
+            <LegendDot color={SHOT_TYPE_COLORS.miss}  label="Errado" />
+            <LegendDot color={SHOT_TYPE_COLORS.post}  label="Palo" />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Arco */}
+            <section>
+              <div className="flex items-center justify-between mb-1.5">
+                <h3 className="text-xs font-medium">Arco</h3>
+                <span className="text-[10px] text-muted-fg">Cuadrante impactado</span>
+              </div>
+              <div className="max-w-sm mx-auto">
+                <GoalGrid
+                  onSelect={() => {}}
+                  countsByType={quadCountsByType}
+                  shotColors={SHOT_TYPE_COLORS}
+                />
+              </div>
+            </section>
+
+            {/* Cancha */}
+            <section>
+              <div className="flex items-center justify-between mb-1.5">
+                <h3 className="text-xs font-medium">Cancha</h3>
+                <span className="text-[10px] text-muted-fg">Zona del lanzamiento</span>
+              </div>
+              <div className="max-w-sm mx-auto">
+                <CourtView
+                  onZoneSelect={() => {}}
+                  countsByType={zoneCountsByType}
+                  shotColors={SHOT_TYPE_COLORS}
+                />
+              </div>
+            </section>
+          </div>
+
+          <p className="text-center text-[10px] text-muted-fg mt-3">
+            Los números en cada casilla son la cantidad de tiros por tipo
+          </p>
+        </div>
+      )}
 
       {/* Timeline de eventos */}
       <div>
@@ -205,6 +302,9 @@ const summarizeEvents = (events: PersonalEvent[]): SummarizedStats => {
   return { goals, shots, efficiency, assists, turnovers, exclusions };
 };
 
+const isShotType = (t: PersonalEventType): boolean =>
+  t === 'goal' || t === 'saved' || t === 'miss' || t === 'post';
+
 const formatEventDetails = (e: PersonalEvent): string => {
   const parts: string[] = [];
   if (e.zone && ZONE_LABELS[e.zone])                 parts.push(ZONE_LABELS[e.zone]);
@@ -254,6 +354,13 @@ const ResultBadge = ({ result }: { result: 'W' | 'D' | 'L' | '-' }) => {
     </span>
   );
 };
+
+const LegendDot = ({ color, label }: { color: string; label: string }) => (
+  <span className="inline-flex items-center gap-1.5">
+    <span className="w-2 h-2 rounded-full" style={{ background: color }} />
+    <span className="text-muted-fg">{label}</span>
+  </span>
+);
 
 const EventTypeBadge = ({ type }: { type: PersonalEventType }) => {
   const map: Record<PersonalEventType, { label: string; cls: string }> = {
