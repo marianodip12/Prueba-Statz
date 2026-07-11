@@ -8,7 +8,7 @@ export type PersonalEventType =
   | 'goal' | 'miss' | 'saved' | 'post'
   | 'save' | 'goal_conceded'
   | 'assist' | 'turnover' | 'exclusion'
-  | 'yellow_card' | 'red_card' | 'foul_committed';
+  | 'yellow_card' | 'red_card' | 'blue_card' | 'foul_committed';
 
 export type PersonalMatchStatus = 'idle' | 'live' | 'half_time' | 'finished';
 

@@ -101,9 +101,11 @@ export const PlayerHomePage = () => {
           </h2>
           <div className="space-y-2">
             {recent.map((m) => (
-              <div
+              <button
                 key={m.id}
-                className="flex items-center justify-between rounded-md border border-border bg-surface p-3"
+                type="button"
+                onClick={() => navigate(`/app/player/match/${m.id}`)}
+                className="w-full text-left flex items-center justify-between rounded-md border border-border bg-surface p-3 hover:border-primary/40 hover:bg-primary/5 transition-colors"
               >
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium truncate">vs {m.opponent}</div>
@@ -122,8 +124,9 @@ export const PlayerHomePage = () => {
                       {m.my_goals}g · {fmtPct(m.my_efficiency)}
                     </div>
                   </div>
+                  <span className="text-muted-fg text-lg">›</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
