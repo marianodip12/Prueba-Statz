@@ -98,6 +98,18 @@ export const PlayerMatchDetailPage = () => {
     return acc;
   }, [events]);
 
+  // Total por cuadrante (sumatorio de todos los tipos). Necesario para que
+  // GoalGrid pinte los números — usa `counts` como driver de "hay algo o no".
+  const quadCounts = useMemo(() => {
+    const acc: Partial<Record<GoalQuadrantId, number>> = {};
+    for (const e of events) {
+      if (!e.goal_section || !isShotType(e.type)) continue;
+      const k = e.goal_section as GoalQuadrantId;
+      acc[k] = (acc[k] ?? 0) + 1;
+    }
+    return acc;
+  }, [events]);
+
   // Counts por zona de la cancha, breakdown por tipo
   const zoneCountsByType = useMemo(() => {
     const acc: Record<string, Partial<Record<CourtZoneId, number>>> = {
@@ -109,6 +121,17 @@ export const PlayerMatchDetailPage = () => {
       const k = e.zone as CourtZoneId;
       const bucket = acc[e.type];
       if (bucket) bucket[k] = (bucket[k] ?? 0) + 1;
+    }
+    return acc;
+  }, [events]);
+
+  // Total por zona (heatmap driver de CourtView)
+  const zoneCounts = useMemo(() => {
+    const acc: Partial<Record<CourtZoneId, number>> = {};
+    for (const e of events) {
+      if (!e.zone || !isShotType(e.type)) continue;
+      const k = e.zone as CourtZoneId;
+      acc[k] = (acc[k] ?? 0) + 1;
     }
     return acc;
   }, [events]);
@@ -226,6 +249,7 @@ export const PlayerMatchDetailPage = () => {
               <div className="max-w-md mx-auto">
                 <GoalGrid
                   onSelect={() => {}}
+                  counts={quadCounts}
                   countsByType={quadCountsByType}
                   shotColors={SHOT_TYPE_COLORS}
                 />
@@ -241,6 +265,7 @@ export const PlayerMatchDetailPage = () => {
               <div className="max-w-md mx-auto">
                 <CourtView
                   onZoneSelect={() => {}}
+                  heatmap={zoneCounts}
                   countsByType={zoneCountsByType}
                   shotColors={SHOT_TYPE_COLORS}
                 />

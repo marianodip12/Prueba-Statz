@@ -466,6 +466,7 @@ export const PlayerLoadMatchPage = () => {
                    pending.isOutZone  ? 'out'  as GoalZoneId : null)
                 }
                 onSelect={handleGoalTap}
+                counts={goalCountsBySection}
                 countsByType={{ shots: goalCountsBySection }}
               />
             </div>
@@ -481,6 +482,7 @@ export const PlayerLoadMatchPage = () => {
               <CourtView
                 selectedZone={pending.zone}
                 onZoneSelect={handleCourtTap}
+                heatmap={courtCountsByZone}
                 countsByType={{ shots: courtCountsByZone }}
               />
             </div>
