@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   getMyPersonalStats,
@@ -7,6 +8,7 @@ import {
 import { useProfileType } from '@/lib/use-profile-type';
 
 export const PlayerHomePage = () => {
+  const navigate = useNavigate();
   const { isPreviewActive } = useProfileType();
 
   const dataQ = useQuery({
@@ -43,11 +45,10 @@ export const PlayerHomePage = () => {
         </p>
         <button
           type="button"
-          disabled
-          className="px-6 py-2.5 rounded-md bg-primary text-primary-fg font-semibold text-sm opacity-50 cursor-not-allowed"
-          title="Feature en construcción"
+          onClick={() => navigate('/app/player/load')}
+          className="px-6 py-2.5 rounded-md bg-primary text-primary-fg font-semibold text-sm hover:bg-primary/90"
         >
-          Cargar partido (próximamente)
+          Cargar mi primer partido
         </button>
       </div>
     );
@@ -67,11 +68,10 @@ export const PlayerHomePage = () => {
         </div>
         <button
           type="button"
-          disabled
-          title="En construcción"
-          className="px-4 py-2 rounded-md bg-primary/20 border border-primary/40 text-primary font-semibold text-xs opacity-60 cursor-not-allowed whitespace-nowrap"
+          onClick={() => navigate('/app/player/load')}
+          className="px-4 py-2 rounded-md bg-primary text-primary-fg font-semibold text-xs hover:bg-primary/90 whitespace-nowrap"
         >
-          + Cargar partido (próximamente)
+          + Cargar partido
         </button>
       </div>
 
