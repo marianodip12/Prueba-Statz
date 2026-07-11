@@ -21,6 +21,7 @@ import { SupportPage } from '@/features/support/support-page';
 import { StaffPage } from '@/features/staff/staff-page';
 import { PlayerHomePage } from '@/features/player/player-home-page';
 import { PlayerLoadMatchPage } from '@/features/player/player-load-match-page';
+import { PlayerMatchDetailPage } from '@/features/player/player-match-detail-page';
 import { ProfileTypeGuard } from '@/features/player/profile-type-guard';
 import { I18nProvider } from '@/lib/i18n';
 import { AuthProvider } from '@/lib/auth';
@@ -62,8 +63,9 @@ const router = createBrowserRouter([
           { path: 'video/:id',       element: <ProfileTypeGuard require="coach"><VideoAnalysisPage /></ProfileTypeGuard> },
 
           // Rutas de jugador (coaches redirigen a /app)
-          { path: 'player/home',     element: <ProfileTypeGuard require="player"><PlayerHomePage /></ProfileTypeGuard> },
-          { path: 'player/load',     element: <ProfileTypeGuard require="player"><PlayerLoadMatchPage /></ProfileTypeGuard> },
+          { path: 'player/home',       element: <ProfileTypeGuard require="player"><PlayerHomePage /></ProfileTypeGuard> },
+          { path: 'player/load',       element: <ProfileTypeGuard require="player"><PlayerLoadMatchPage /></ProfileTypeGuard> },
+          { path: 'player/match/:id',  element: <ProfileTypeGuard require="player"><PlayerMatchDetailPage /></ProfileTypeGuard> },
 
           // Rutas compartidas (admin, planes, soporte, staff, billing) — sin gate por rol
           { path: 'admin',           element: <AdminPage /> },
