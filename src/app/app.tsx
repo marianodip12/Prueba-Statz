@@ -19,6 +19,8 @@ import { PlansPage } from '@/features/billing/plans-page';
 import { BillingReturnPage } from '@/features/billing/billing-return-page';
 import { SupportPage } from '@/features/support/support-page';
 import { StaffPage } from '@/features/staff/staff-page';
+import { PlayerHomePage } from '@/features/player/player-home-page';
+import { ProfileTypeGuard } from '@/features/player/profile-type-guard';
 import { I18nProvider } from '@/lib/i18n';
 import { AuthProvider } from '@/lib/auth';
 
@@ -49,17 +51,23 @@ const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { index: true, element: <MatchesPage /> },
-          { path: 'teams',     element: <TeamsPage /> },
-          { path: 'live',      element: <LiveMatchPage /> },
-          { path: 'stats',     element: <StatsPage /> },
-          { path: 'evolution', element: <EvolutionPage /> },
-          { path: 'analysis/:id', element: <MatchAnalysisPage /> },
-          { path: 'video/:id',    element: <VideoAnalysisPage /> },
-          { path: 'admin',       element: <AdminPage /> },
-          { path: 'plans',       element: <PlansPage /> },
-          { path: 'support',     element: <SupportPage /> },
-          { path: 'staff',       element: <StaffPage /> },
+          // Rutas de coach (jugadores redirigen a /app/player/home)
+          { index: true,             element: <ProfileTypeGuard require="coach"><MatchesPage /></ProfileTypeGuard> },
+          { path: 'teams',           element: <ProfileTypeGuard require="coach"><TeamsPage /></ProfileTypeGuard> },
+          { path: 'live',            element: <ProfileTypeGuard require="coach"><LiveMatchPage /></ProfileTypeGuard> },
+          { path: 'stats',           element: <ProfileTypeGuard require="coach"><StatsPage /></ProfileTypeGuard> },
+          { path: 'evolution',       element: <ProfileTypeGuard require="coach"><EvolutionPage /></ProfileTypeGuard> },
+          { path: 'analysis/:id',    element: <ProfileTypeGuard require="coach"><MatchAnalysisPage /></ProfileTypeGuard> },
+          { path: 'video/:id',       element: <ProfileTypeGuard require="coach"><VideoAnalysisPage /></ProfileTypeGuard> },
+
+          // Rutas de jugador (coaches redirigen a /app)
+          { path: 'player/home',     element: <ProfileTypeGuard require="player"><PlayerHomePage /></ProfileTypeGuard> },
+
+          // Rutas compartidas (admin, planes, soporte, staff, billing) — sin gate por rol
+          { path: 'admin',           element: <AdminPage /> },
+          { path: 'plans',           element: <PlansPage /> },
+          { path: 'support',         element: <SupportPage /> },
+          { path: 'staff',           element: <StaffPage /> },
           { path: 'billing/success', element: <BillingReturnPage status="success" /> },
           { path: 'billing/failure', element: <BillingReturnPage status="failure" /> },
           { path: 'billing/pending', element: <BillingReturnPage status="pending" /> },

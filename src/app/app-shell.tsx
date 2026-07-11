@@ -14,8 +14,10 @@ import { TutorialOverlay, useShouldShowTutorial } from '@/features/tutorial/tuto
 import { SupportButton } from '@/components/support-button';
 import { BetaBanner } from '@/components/beta-banner';
 import { AdminPlanPreview } from '@/components/admin-plan-preview';
+import { AdminProfilePreview } from '@/components/admin-profile-preview';
 import { ClubSwitcher, ClubContextBanner } from '@/components/club-switcher';
 import { clearClubContextSilent } from '@/lib/club-context';
+import { useProfileType } from '@/lib/use-profile-type';
 
 export const AppShell = () => {
   const location = useLocation();
@@ -26,6 +28,7 @@ export const AppShell = () => {
   const { locale, setLocale } = useI18n();
   const { user, signOut } = useAuth();
   const { plan } = usePlan();
+  const { isPlayer } = useProfileType();
   const { show: showTutorial, setShow: setShowTutorial } = useShouldShowTutorial();
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -110,7 +113,8 @@ export const AppShell = () => {
 
         {/* Nav links */}
         <div className="flex-1 flex flex-col gap-1 p-3">
-          {NAV_ITEMS.map((item) => (
+          {/* Nav items de coach (ocultos para jugadores) */}
+          {!isPlayer && NAV_ITEMS.map((item) => (
             <NavLink
               key={item.key}
               to={item.path}
@@ -135,6 +139,24 @@ export const AppShell = () => {
               )}
             </NavLink>
           ))}
+
+          {/* Nav item de jugador */}
+          {isPlayer && (
+            <NavLink
+              to="/app/player/home"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium',
+                  isActive
+                    ? 'bg-primary/15 text-primary border border-primary/40'
+                    : 'text-muted-fg hover:text-fg hover:bg-surface-2',
+                )
+              }
+            >
+              <span>📊</span>
+              <span className="flex-1">Mis stats</span>
+            </NavLink>
+          )}
 
           {/* Mi Plan link — visible para todos los logueados */}
           <NavLink
@@ -162,22 +184,24 @@ export const AppShell = () => {
           </NavLink>
 
           {/* Mi Staff — usuarios habilitados (Club/Elite, la página gatea) */}
-          <NavLink
-            to="/app/staff"
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium mt-1',
-                isActive
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted-fg hover:text-fg hover:bg-surface-2',
-              )
-            }
-          >
-            👔 <span>Mi Staff</span>
-          </NavLink>
+          {!isPlayer && (
+            <NavLink
+              to="/app/staff"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium mt-1',
+                  isActive
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-fg hover:text-fg hover:bg-surface-2',
+                )
+              }
+            >
+              👔 <span>Mi Staff</span>
+            </NavLink>
+          )}
 
           {/* 👔 Selector de contexto de club (solo si fue invitado a alguno) */}
-          <ClubSwitcher />
+          {!isPlayer && <ClubSwitcher />}
 
           {/* Soporte link — visible para todos los logueados */}
           <NavLink
@@ -213,6 +237,9 @@ export const AppShell = () => {
 
           {/* Admin plan preview selector */}
           {isAdmin && <AdminPlanPreview />}
+
+          {/* Admin profile_type preview selector */}
+          {isAdmin && <AdminProfilePreview />}
 
           {/* 💛 Donar — llamativo, abre el diálogo de donación */}
           <button
@@ -326,7 +353,7 @@ export const AppShell = () => {
 
         {/* Bottom nav — mobile & tablet only */}
         <nav className="lg:hidden fixed md:relative bottom-0 left-0 right-0 z-50 bg-bg/95 backdrop-blur border-t border-border flex pb-[env(safe-area-inset-bottom,0)] md:pb-0 md:flex-row md:justify-center md:gap-2 md:p-3">
-          {NAV_ITEMS.map((item) => (
+          {!isPlayer && NAV_ITEMS.map((item) => (
             <NavLink
               key={item.key}
               to={item.path}
@@ -350,6 +377,18 @@ export const AppShell = () => {
               )}
             </NavLink>
           ))}
+          {isPlayer && (
+            <NavLink
+              to="/app/player/home"
+              className={({ isActive }) => cn(
+                'flex-1 md:flex-none py-2.5 md:py-2 md:px-4 flex flex-col md:flex-row md:items-center md:gap-2 items-center gap-1 touch-target transition-colors relative',
+                isActive ? 'text-primary' : 'text-muted-fg hover:text-fg',
+              )}
+            >
+              <span className="text-lg">📊</span>
+              <span className="text-[9px] md:text-xs font-medium tracking-wider">Mis stats</span>
+            </NavLink>
+          )}
         </nav>
       </div>
 
