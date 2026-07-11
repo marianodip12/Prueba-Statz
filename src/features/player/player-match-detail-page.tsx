@@ -78,35 +78,10 @@ export const PlayerMatchDetailPage = () => {
     [matchesQ.data, id],
   );
 
-  if (matchesQ.isLoading) {
-    return <div className="p-8 text-center text-muted-fg text-sm">Cargando partido…</div>;
-  }
-
-  if (!match) {
-    return (
-      <div className="mx-auto max-w-md p-8 text-center">
-        <h1 className="text-xl font-bold mb-2">Partido no encontrado</h1>
-        <p className="text-sm text-muted-fg mb-6">
-          El partido no existe o fue eliminado.
-        </p>
-        <button
-          type="button"
-          onClick={() => navigate('/app/player/home')}
-          className="px-4 py-2.5 rounded-md bg-primary text-primary-fg font-semibold text-sm hover:bg-primary/90"
-        >
-          Volver a mis stats
-        </button>
-      </div>
-    );
-  }
-
-  const result =
-    match.my_score > match.opp_score ? 'W' :
-    match.my_score < match.opp_score ? 'L' :
-    match.my_score === match.opp_score && (match.my_score > 0 || match.opp_score > 0) ? 'D' : '-';
-
+  // ⚠️ IMPORTANTE: TODOS los hooks deben llamarse ANTES de cualquier early return.
+  // Si un useMemo/useState/etc va después de un `if (...) return`, React lanza
+  // el error #310 ("more hooks than previous render") en el segundo render.
   const events = eventsQ.data ?? [];
-  const stats = summarizeEvents(events);
 
   // Counts por cuadrante del arco, breakdown por tipo (goal/saved/miss/post)
   const quadCountsByType = useMemo(() => {
@@ -138,6 +113,36 @@ export const PlayerMatchDetailPage = () => {
     return acc;
   }, [events]);
 
+  // ────── A partir de acá pueden haber early returns ──────
+
+  if (matchesQ.isLoading) {
+    return <div className="p-8 text-center text-muted-fg text-sm">Cargando partido…</div>;
+  }
+
+  if (!match) {
+    return (
+      <div className="mx-auto max-w-md p-8 text-center">
+        <h1 className="text-xl font-bold mb-2">Partido no encontrado</h1>
+        <p className="text-sm text-muted-fg mb-6">
+          El partido no existe o fue eliminado.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/app/player/home')}
+          className="px-4 py-2.5 rounded-md bg-primary text-primary-fg font-semibold text-sm hover:bg-primary/90"
+        >
+          Volver a mis stats
+        </button>
+      </div>
+    );
+  }
+
+  const result =
+    match.my_score > match.opp_score ? 'W' :
+    match.my_score < match.opp_score ? 'L' :
+    match.my_score === match.opp_score && (match.my_score > 0 || match.opp_score > 0) ? 'D' : '-';
+
+  const stats = summarizeEvents(events);
   const hasMappedShots =
     stats.shots > 0 && events.some((e) => e.goal_section || e.zone);
 
