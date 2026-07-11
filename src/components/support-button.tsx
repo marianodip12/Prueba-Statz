@@ -1,21 +1,113 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 
 const WA_NUMBER = '541126647764';
 const EMAIL = 'marianonicoslosada@gmail.com';
 
+/** Persistencia del "descarté el saludo" para no ser molesto. */
+const GREETING_DISMISSED_KEY = 'statzpro_support_greeting_dismissed';
+/** Segundos antes de mostrar el saludo automático. */
+const GREETING_DELAY_MS = 8000;
+
+const isGreetingDismissed = (): boolean => {
+  try { return localStorage.getItem(GREETING_DISMISSED_KEY) === '1'; } catch { return true; }
+};
+
+const dismissGreeting = (): void => {
+  try { localStorage.setItem(GREETING_DISMISSED_KEY, '1'); } catch { /* ignore */ }
+};
+
+/**
+ * SupportButton — botón flotante con menú de opciones + burbuja de saludo.
+ *
+ * Comportamiento:
+ * 1. Aparece un FAB (botón redondo) fijo abajo a la derecha
+ * 2. Tras GREETING_DELAY_MS aparece una burbuja "¡Hola! ¿Te ayudo?"
+ *    UNA SOLA VEZ por browser (localStorage). Si el user cerró o abrió antes,
+ *    no vuelve a aparecer.
+ * 3. Click en el FAB o en la burbuja → abre menú con opciones
+ *    (Crear ticket, WhatsApp, Email)
+ */
 export const SupportButton = () => {
   const [open, setOpen] = useState(false);
+  const [greetingVisible, setGreetingVisible] = useState(false);
+
+  // Timer del saludo: solo si no fue descartado
+  useEffect(() => {
+    if (isGreetingDismissed()) return;
+    const t = window.setTimeout(() => setGreetingVisible(true), GREETING_DELAY_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const handleOpen = () => {
+    setOpen(true);
+    if (greetingVisible) {
+      setGreetingVisible(false);
+      dismissGreeting();
+    }
+  };
+
+  const closeGreeting = () => {
+    setGreetingVisible(false);
+    dismissGreeting();
+  };
 
   const waUrl = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Hola! Necesito ayuda con StatzPro')}`;
   const mailUrl = `mailto:${EMAIL}?subject=${encodeURIComponent('Soporte StatzPro')}`;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 z-50 flex flex-col items-end gap-2">
-      {/* Options */}
+    <div className="fixed bottom-20 md:bottom-6 right-4 z-50 flex flex-col items-end gap-2 pointer-events-none">
+      {/* ─── Burbuja de saludo (solo una vez) ─── */}
+      {greetingVisible && !open && (
+        <div
+          className="pointer-events-auto animate-in fade-in slide-in-from-bottom-2 duration-300 mb-1
+                     relative w-64 rounded-2xl bg-surface border border-primary/40 shadow-2xl p-3"
+        >
+          <button
+            type="button"
+            onClick={closeGreeting}
+            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-surface-2 border border-border text-muted-fg hover:text-fg text-[10px] flex items-center justify-center"
+            title="Cerrar"
+          >
+            ✕
+          </button>
+          <div className="flex items-start gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0 text-lg">
+              👋
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-fg leading-tight">
+                ¡Hola! ¿Te ayudo?
+              </p>
+              <p className="text-[11px] text-muted-fg mt-0.5 leading-snug">
+                Estamos activos. Contame qué necesitás y te contestamos.
+              </p>
+              <button
+                type="button"
+                onClick={handleOpen}
+                className="mt-2 text-xs font-semibold text-primary hover:underline"
+              >
+                Abrir chat →
+              </button>
+            </div>
+          </div>
+          {/* Colita del bocadillo apuntando al FAB */}
+          <span
+            className="absolute -bottom-1.5 right-6 w-3 h-3 rotate-45 bg-surface border-b border-r border-primary/40"
+          />
+        </div>
+      )}
+
+      {/* ─── Menú de opciones ─── */}
       {open && (
-        <div className="flex flex-col gap-2 mb-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="pointer-events-auto flex flex-col gap-2 mb-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="mb-1 rounded-xl bg-surface border border-border shadow-lg px-3 py-2 max-w-[260px]">
+            <p className="text-xs font-semibold text-fg">Elegí cómo contactarnos</p>
+            <p className="text-[10px] text-muted-fg mt-0.5 leading-tight">
+              Respondemos lo antes posible. WhatsApp suele ser lo más rápido.
+            </p>
+          </div>
           <Link
             to="/app/support"
             onClick={() => setOpen(false)}
@@ -48,18 +140,22 @@ export const SupportButton = () => {
         </div>
       )}
 
-      {/* FAB */}
+      {/* ─── FAB ─── */}
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => (open ? setOpen(false) : handleOpen())}
         className={cn(
-          'w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200',
+          'pointer-events-auto w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 relative',
           open
             ? 'bg-surface border border-border text-muted-fg rotate-45'
             : 'bg-primary text-primary-fg hover:bg-primary/90',
         )}
         title="Soporte"
       >
+        {/* Indicador rojo si hay saludo activo */}
+        {greetingVisible && !open && (
+          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-danger border-2 border-bg animate-pulse" />
+        )}
         {open ? (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/>
