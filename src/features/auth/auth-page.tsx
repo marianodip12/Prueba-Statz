@@ -23,7 +23,12 @@ export const AuthPage = ({ mode }: AuthPageProps) => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [profileType, setProfileType] = useState<ProfileType>('coach');
+  const [profileType, setProfileType] = useState<ProfileType>(() => {
+    // Pre-selección desde query param (?role=player) — usado en la landing para
+    // llevar directo al signup como jugador.
+    const params = new URLSearchParams(location.search);
+    return params.get('role') === 'player' ? 'player' : 'coach';
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
