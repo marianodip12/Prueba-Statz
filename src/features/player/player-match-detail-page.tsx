@@ -186,12 +186,18 @@ export const PlayerMatchDetailPage = () => {
           Mi rendimiento
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <StatCard label="Goles"       value={stats.goals}    accent="goal" />
+          <StatCard label="Goles"       value={stats.goals}      accent="goal" />
           <StatCard label="Tiros"       value={stats.shots} />
           <StatCard label="Efectividad" value={fmtPct(stats.efficiency)} />
+          <StatCard label="Atajados"    value={stats.saved} />
+          <StatCard label="Errados"     value={stats.missed}     accent="danger" />
+          <StatCard label="Palos"       value={stats.posts} />
           <StatCard label="Asistencias" value={stats.assists} />
           <StatCard label="Pérdidas"    value={stats.turnovers} />
-          <StatCard label="Exclusiones" value={stats.exclusions} />
+          <StatCard label="Exclusiones" value={stats.exclusions} accent="danger" />
+          <StatCard label="Amarillas"   value={stats.yellows} />
+          <StatCard label="Azules"      value={stats.blues} />
+          <StatCard label="Rojas"       value={stats.reds}       accent="danger" />
         </div>
       </div>
 
@@ -210,14 +216,14 @@ export const PlayerMatchDetailPage = () => {
             <LegendDot color={SHOT_TYPE_COLORS.post}  label="Palo" />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-6">
             {/* Arco */}
             <section>
               <div className="flex items-center justify-between mb-1.5">
                 <h3 className="text-xs font-medium">Arco</h3>
                 <span className="text-[10px] text-muted-fg">Cuadrante impactado</span>
               </div>
-              <div className="max-w-sm mx-auto">
+              <div className="max-w-md mx-auto">
                 <GoalGrid
                   onSelect={() => {}}
                   countsByType={quadCountsByType}
@@ -232,7 +238,7 @@ export const PlayerMatchDetailPage = () => {
                 <h3 className="text-xs font-medium">Cancha</h3>
                 <span className="text-[10px] text-muted-fg">Zona del lanzamiento</span>
               </div>
-              <div className="max-w-sm mx-auto">
+              <div className="max-w-md mx-auto">
                 <CourtView
                   onZoneSelect={() => {}}
                   countsByType={zoneCountsByType}
@@ -287,24 +293,31 @@ export const PlayerMatchDetailPage = () => {
 
 interface SummarizedStats {
   goals: number; shots: number; efficiency: number | null;
+  saved: number; missed: number; posts: number;
   assists: number; turnovers: number; exclusions: number;
+  yellows: number; blues: number; reds: number;
 }
 
 const summarizeEvents = (events: PersonalEvent[]): SummarizedStats => {
-  let goals = 0, shots = 0, assists = 0, turnovers = 0, exclusions = 0;
+  let goals = 0, shots = 0, saved = 0, missed = 0, posts = 0;
+  let assists = 0, turnovers = 0, exclusions = 0;
+  let yellows = 0, blues = 0, reds = 0;
   for (const e of events) {
     switch (e.type) {
-      case 'goal':   goals++; shots++; break;
-      case 'miss':
-      case 'saved':
-      case 'post':   shots++; break;
-      case 'assist': assists++; break;
-      case 'turnover': turnovers++; break;
-      case 'exclusion': exclusions++; break;
+      case 'goal':   goals++;  shots++; break;
+      case 'saved':  saved++;  shots++; break;
+      case 'miss':   missed++; shots++; break;
+      case 'post':   posts++;  shots++; break;
+      case 'assist':      assists++;    break;
+      case 'turnover':    turnovers++;  break;
+      case 'exclusion':   exclusions++; break;
+      case 'yellow_card': yellows++;    break;
+      case 'blue_card':   blues++;      break;
+      case 'red_card':    reds++;       break;
     }
   }
   const efficiency = shots > 0 ? goals / shots : null;
-  return { goals, shots, efficiency, assists, turnovers, exclusions };
+  return { goals, shots, efficiency, saved, missed, posts, assists, turnovers, exclusions, yellows, blues, reds };
 };
 
 const isShotType = (t: PersonalEventType): boolean =>
