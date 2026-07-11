@@ -1,33 +1,37 @@
-import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { useProfileType } from '@/lib/use-profile-type';
+import type { ProfileType } from '@/lib/personal-profile-api';
 
 interface Props {
-  children: React.ReactNode;
+  /** Rol requerido para renderizar los children. */
+  require: ProfileType;
+  children: ReactNode;
 }
 
 /**
- * - Si el user es 'player' y está en una ruta de coach → redirect a /app/player/home
- * - Si el user es 'coach' y está en /app/player/* → redirect a /app
+ * Gatea una ruta por profile_type efectivo (respeta el override admin).
+ *
+ * - `require="coach"` sobre una página coach: si el user es player → redirect a /app/player/home
+ * - `require="player"` sobre /app/player/home: si el user es coach → redirect a /app
+ * - Mientras carga, muestra nada (evita flash).
+ * - Si por algún motivo profileType es null (users viejos sin migrar), asume coach
+ *   para no bloquear la app existente.
  */
-export function ProfileTypeGuard({ children }: Props) {
+export const ProfileTypeGuard = ({ require, children }: Props) => {
   const { profileType, isLoading } = useProfileType();
-  const location = useLocation();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isLoading || !profileType) return;
-    const path = location.pathname;
-    const isPlayerRoute = path.startsWith('/app/player');
-    const isCoachOnlyRoute =
-      path.startsWith('/app') && !isPlayerRoute && path !== '/app';
+  if (isLoading) return null;
 
-    if (profileType === 'player' && isCoachOnlyRoute) {
-      navigate('/app/player/home', { replace: true });
-    } else if (profileType === 'coach' && isPlayerRoute) {
-      navigate('/app', { replace: true });
-    }
-  }, [profileType, isLoading, location.pathname, navigate]);
+  // Fallback: null → coach (para no romper users existentes sin profile_type seteado).
+  const effective = profileType ?? 'coach';
+
+  if (require === 'coach' && effective === 'player') {
+    return <Navigate to="/app/player/home" replace />;
+  }
+  if (require === 'player' && effective === 'coach') {
+    return <Navigate to="/app" replace />;
+  }
 
   return <>{children}</>;
-}
+};
